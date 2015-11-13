@@ -4,10 +4,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import HTMLTree.Node;
 
 /**
  * TODO Put here a description of what this class does.
@@ -53,7 +56,6 @@ public class HTMLTree {
 
 	private static final Collection<NodeTarget> IGNORENODES = new ArrayList<NodeTarget>() {
 		{
-			add(new NodeTarget("!--"));
 			add(new NodeTarget("img"));
 			add(new NodeTarget("div", "class=\"appendix\""));
 			add(new NodeTarget("div", "class=\"suggestions\""));
@@ -78,25 +80,43 @@ public class HTMLTree {
 		root = new Node(null, "RootNode", null);
 		Node cur = root;
 		String leftStr = "";
+		boolean comment = false; // if currently within an HTML comment
 		for (String l : htmlF) {
 			String line = leftStr + l;
-			Matcher m = tagPattern.matcher(line);
-			int index = 0;
-			while (true) {
-				if (!m.find(index))
-					break;
-				index = m.end();
-				cur.addString(m.group(1)); // add string before this tag
-				String tagName = m.group(3);
-				if (isEndTag(m.group(2))) {
-					cur = findHeadTag(cur, tagName);
+			if (comment) {
+				int i = line.indexOf("-->");
+				if (i > 0) {
+					comment = false;
+					leftStr = line.substring(i + 3);
 				} else {
-					cur = cur.addNode(tagName, m.group(4));
+					leftStr = "";
 				}
+			} else {
+				Matcher m = tagPattern.matcher(line);
+				int index = 0;
+				while (true) {
+					if (!m.find(index))
+						break;
+					cur.addString(m.group(1)); // add string before this tag
+					String tagName = m.group(3);
+					if (tagName.startsWith("!--")) {
+						index = m.start(3) + 3;
+						comment = true;
+						break;
+					} else {
+						index = m.end();
+						if (isEndTag(m.group(2))) {
+							cur = findHeadTag(cur, tagName);
+						} else {
+							cur = cur.addNode(tagName, m.group(4));
+						}
+					}
+				}
+				leftStr = line.substring(index);
 			}
-			leftStr = line.substring(index);
 		}
 		root.clearNode();
+		root.combineTextNode();
 	}
 
 	/**
@@ -106,7 +126,6 @@ public class HTMLTree {
 	 * @param cur
 	 *
 	 * @param tagName
-	 * @return
 	 * @return
 	 */
 	private Node findHeadTag(Node curNode, String tagName) {
@@ -230,6 +249,39 @@ public class HTMLTree {
 		}
 
 		/**
+		 * TODO Put here a description of what this method does.
+		 *
+		 */
+		public void combineTextNode() {
+			ListIterator<Node> itr = subNodes.listIterator();
+			Node cur;
+			Node pre;
+			boolean t = false;
+//			while (itr.hasNext()) {
+//				pre = cur;
+//				cur = itr.next();
+//				if (t) {
+//					if (cur.isText()) {
+//						t
+//					}
+//				} else {
+//					if (cur.isText()) {
+//						t = true;
+//					}
+//				}
+//			}
+		}
+
+		/**
+		 * TODO Put here a description of what this method does.
+		 *
+		 * @return
+		 */
+		protected boolean isText() {
+			return INLINENODES.contains(type);
+		}
+
+		/**
 		 * tell whether this node is useless for future process, remove needless
 		 * nodes
 		 * 
@@ -237,10 +289,9 @@ public class HTMLTree {
 		 */
 		protected boolean useless() {
 			if (isEmpty())
-				return true;
-			for (NodeTarget tar : IGNORENODES)
-				if (match(tar))
-					return true;
+				for (NodeTarget tar : IGNORENODES)
+					if (match(tar))
+						return true;
 			return false;
 		}
 
@@ -365,6 +416,16 @@ public class HTMLTree {
 		TextNode(Node parent, String context) {
 			super(parent, "text", null);
 			text = context;
+		}
+
+		/**
+		 * TODO Put here a description of what this method does.
+		 *
+		 * @return
+		 */
+		@Override
+		protected boolean isText() {
+			return true;
 		}
 
 		@Override
