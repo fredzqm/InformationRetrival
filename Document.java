@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -21,9 +22,10 @@ public class Document implements Comparable<Document> {
 	 * 
 	 * construct a document given HTML file as array of lines
 	 * 
+	 * @param name 
 	 * @param htmlF
 	 */
-	public Document(String name, ArrayList<String> htmlF) {
+	public Document(String name, Collection<String> htmlF) {
 		this.name = name;
 		System.out.println(name);
 		parseTree = new HTMLTree(htmlF);

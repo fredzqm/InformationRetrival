@@ -23,7 +23,7 @@ public class Reg {
 	public static void main(String[] args) throws FileNotFoundException {
 
 		int length = 4;
-		Pattern tag = Pattern.compile("(.*?)<(/)?(.*?)(\\s.*?)?>");
+		Pattern tag = Pattern.compile("(.*?)=(\"(.*?)\")");
 
 		Scanner in = new Scanner(new File("input.txt"));
 		String s = in.nextLine();
@@ -31,27 +31,27 @@ public class Reg {
 
 		System.out.println(("p p "+s.trim()).split("\\w+").length - 3);
 
-//		
-//		Matcher m = tag.matcher(s);
-//
-//		int matchcount = 1;
-//		int index = 0;
-//		while (true) {
-//			System.out.println("\nMatch " + matchcount);
-//			boolean found = m.find(index);
-//			System.out.println("Match?: " + found);
-//			if (!found)
-//				break;
-//			index = m.end();
-//			System.out.println("start: " + m.start());
-//			System.out.println("end: " + m.end());
-//			int count = m.groupCount();
-//			for (int i = 0; i <= count; i++) {
-//				System.out.println("G" + i + ": " + m.group(i));
-//			}
-//			System.out.println("After String:" + s.substring(m.end()));
-//			matchcount++;
-//		}
+		
+		Matcher m = tag.matcher(s);
+
+		int matchcount = 1;
+		int index = 0;
+		while (true) {
+			System.out.println("\nMatch " + matchcount);
+			boolean found = m.find(index);
+			System.out.println("Match?: " + found);
+			if (!found)
+				break;
+			index = m.end();
+			System.out.println("start: " + m.start());
+			System.out.println("end: " + m.end());
+			int count = m.groupCount();
+			for (int i = 0; i <= count; i++) {
+				System.out.println("G" + i + ": " + m.group(i));
+			}
+			System.out.println("After String:" + s.substring(m.end()));
+			matchcount++;
+		}
 	}
 
 	private static ArrayList<String> getWord(String s, int length) {

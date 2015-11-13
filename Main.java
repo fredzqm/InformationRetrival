@@ -1,10 +1,9 @@
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Scanner;
 
 /**
@@ -26,7 +25,7 @@ public class Main {
 		curation = new Curation();
 		for (File presidentFile : files) {
 			in = new Scanner(presidentFile);
-			ArrayList<String> lines = new ArrayList<String>();
+			LinkedList<String> lines = new LinkedList<String>();
 			while (in.hasNext()) {
 				lines.add(in.nextLine().toLowerCase());
 			}
@@ -42,12 +41,8 @@ public class Main {
 		while (true) {
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			String s = br.readLine();
-			String[] splitted = s.split("\\s+");
-			ArrayList<String> input = new ArrayList<String>();
-			for (String l : splitted) {
-				input.add(l);
-			}
-			ArrayList<Document> re = curation.query(input);
+			
+			ArrayList<Document> re = curation.query(s);
 			if (re.size() == 0) {
 				System.out.println("No match!");
 				continue;

@@ -1,10 +1,7 @@
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Stack;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,18 +23,18 @@ public class HTMLTree {
 	 * G4, other specifications, null if there isn't anything
 	 */
 	private static Pattern tagPattern = Pattern.compile("(.*?)<(/)?(.*?)(\\s.*?)?>");
-	private static Pattern attriExtractor = Pattern.compile("(.*)=(.*)");
+	private static Pattern attriExtractor = Pattern.compile("(.*?)=(\"(.*?)\")");
 	private Node root;
 
 	/**
 	 * 
-	 * @param lines
+	 * @param htmlF
 	 */
-	public HTMLTree(ArrayList<String> lines) {
+	public HTMLTree(Collection<String> htmlF) {
 		root = new Node(null, "RootNode");
 		Node cur = root;
 		String leftStr = "";
-		for (String l : lines) {
+		for (String l : htmlF) {
 			String line = leftStr + l;
 			Matcher m = tagPattern.matcher(line);
 			int index = 0;
@@ -56,7 +53,7 @@ public class HTMLTree {
 			leftStr = line.substring(index);
 		}
 
-		root.clearEmptyNode();
+		root.clearNode();
 	}
 
 	/**
@@ -75,7 +72,7 @@ public class HTMLTree {
 			while (!cur.is(tagName)) {
 				Node parent = cur.getParentNode();
 				parent.subNodes.addAll(cur.subNodes);
-				parent.subNodes.remove(cur);
+				cur.subNodes = null;
 				cur = parent;
 			}
 		} catch (NullPointerException e) {
@@ -125,7 +122,7 @@ public class HTMLTree {
 	 * @param attr
 	 * @return
 	 */
-	public Collection<String> textWithinTagCointainAttr(String tag, HashMap<String, String> attr){
+	public Collection<String> textWithinTagCointainAttr(String tag, HashMap<String, String> attr) {
 		return root.textWithinTagCointainAttr(tag, attr);
 	}
 
@@ -136,7 +133,7 @@ public class HTMLTree {
 
 	private class Node {
 		private Node parent;
-		private ArrayList<Node> subNodes;
+		private LinkedList<Node> subNodes;
 		private String type;
 		private HashMap<String, String> attributes;
 
@@ -148,7 +145,7 @@ public class HTMLTree {
 		 */
 		public Node(Node parent, String tagtype) {
 			this.parent = parent;
-			subNodes = new ArrayList<Node>();
+			subNodes = new LinkedList<Node>();
 			this.type = tagtype;
 		}
 
@@ -161,19 +158,44 @@ public class HTMLTree {
 		 */
 		public Node(Node node, String tagName, String attr) {
 			this(node, tagName);
-			if (attr == null){
-				//this.attributes = new HashMap<String, String>();
+			if (attr == null) {
+				// this.attributes = new HashMap<String, String>();
+			} else {
+				this.attributes = new HashMap<String, String>();
+				Matcher m = attriExtractor.matcher(attr);
+				int index = 0;
+				if (m.find(index)) {
+					attributes.put(m.group(1), m.group(3));
+					index = m.end();
+				}
 			}
-			else{
-				String[] list = attr.trim().split("\\w");
-				if (list.length > 0) {
-					this.attributes = new HashMap<String, String>();
-					for (String s : list) {
-						Matcher m = attriExtractor.matcher(s);
-						if (m.matches()) {
-							attributes.put(m.group(1), m.group(2));
-						}
-					}
+
+		}
+
+		/**
+		 * TODO Put here a description of what this method does.
+		 *
+		 */
+		public void clearNode() {
+			if (isEmpty())
+				return;
+			Iterator<Node> itr = subNodes.iterator();
+			while (itr.hasNext()) {
+				Node n = itr.next();
+				n.clearNode();
+				if (n.isEmpty())
+					itr.remove();
+			}
+		}
+
+		public void clearNode(Node target) {
+			Iterator<Node> itr = subNodes.iterator();
+			while (itr.hasNext()) {
+				Node n = itr.next();
+				if (n.matchNode(target)) {
+					itr.remove();
+				} else {
+					n.clearNode(target);
 				}
 			}
 		}
@@ -181,16 +203,17 @@ public class HTMLTree {
 		/**
 		 * TODO Put here a description of what this method does.
 		 *
+		 * @param n
+		 * @return
 		 */
-		public void clearEmptyNode() {
-			Iterator<Node> itr = subNodes.iterator();
-			while (itr.hasNext()) {
-				Node n = itr.next();
-				if (n.isEmpty())
-					itr.remove();
-				else
-					n.clearEmptyNode();
+		private boolean matchNode(Node n) {
+			if (!type.equals(n.type) | attributes == null)
+				return false;
+			for (String attr : n.attributes.keySet()) {
+				if (!attributes.containsKey(attr) | !attributes.get(attr).contains(n.attributes.get(attr)))
+					return false;
 			}
+			return true;
 		}
 
 		/**
@@ -248,37 +271,54 @@ public class HTMLTree {
 			return subNodes.toString();
 		}
 
+//		/**
+//		 * TODO Put here a description of what this method does.
+//		 *
+//		 * @param tag
+//		 * @return
+//		 */
+//		public LinkedList<String> textWithinTag(String tag) {
+//			LinkedList<String> ret = new LinkedList<String>();
+//			if (tag.equals(type)) {
+//				ret.add(textWithin().trim());
+//				return ret;
+//			}
+//			for (Node node : subNodes)
+//				ret.addAll(node.textWithinTag(tag));
+//			return ret;
+//		}
+//
+//		/**
+//		 * TODO Put here a description of what this method does.
+//		 *
+//		 * @param tag
+//		 * @return
+//		 */
+//		public LinkedList<String> textWithinTagCointainAttr(String tag, HashMap<String, String> attr) {
+//			LinkedList<String> ret = new LinkedList<String>();
+//			if (tag.equals(type) && ContainAttr(attr)) {
+//				ret.add(textWithin().trim());
+//				return ret;
+//			}
+//			for (Node node : subNodes)
+//				ret.addAll(node.textWithinTag(tag));
+//			return ret;
+//		}
+		
 		/**
 		 * TODO Put here a description of what this method does.
 		 *
 		 * @param tag
 		 * @return
 		 */
-		public LinkedList<String> textWithinTag(String tag) {
+		public LinkedList<String> textWithin(Node target) {
 			LinkedList<String> ret = new LinkedList<String>();
-			if (tag.equals(type)) {
+			if (matchNode(target)) {
 				ret.add(textWithin().trim());
 				return ret;
 			}
 			for (Node node : subNodes)
-				ret.addAll(node.textWithinTag(tag));
-			return ret;
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
-		 * @param tag
-		 * @return
-		 */
-		public LinkedList<String> textWithinTagCointainAttr(String tag, HashMap<String, String> attr) {
-			LinkedList<String> ret = new LinkedList<String>();
-			if (tag.equals(type) && ContainAttr(attr)) {
-				ret.add(textWithin().trim());
-				return ret;
-			}
-			for (Node node : subNodes)
-				ret.addAll(node.textWithinTag(tag));
+				ret.addAll(node.textWithin(target));
 			return ret;
 		}
 

@@ -1,10 +1,10 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 
 /**
- * TODO Put here a description of what this class does.
+ * Put here a description of what this class does.
  *
  * @author zhang. Created Oct 26, 2015.
  */
@@ -81,10 +81,12 @@ public class Curation implements Cloneable {
 	 * @param input
 	 * @return an sorted arrayList of result
 	 */
-	public ArrayList<Document> query(ArrayList<String> query) {
+	public ArrayList<Document> query(String queryline) {
+		ArrayList<String> s = new ArrayList<String>(Arrays.asList(queryline.split("\\s+")));
+		
 		avgLength = totalLength / documents.size();
 		for (Document doc : documents){
-			doc.updateScore(score(query, doc));
+			doc.updateScore(score(s, doc));
 		}
 		Collections.sort(documents); // sort descending, highest score at 0.
 
