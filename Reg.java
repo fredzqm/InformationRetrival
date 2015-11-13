@@ -23,7 +23,7 @@ public class Reg {
 	public static void main(String[] args) throws FileNotFoundException {
 
 		int length = 4;
-		Pattern tag = Pattern.compile("(.*?)=(\"(.*?)\")");
+		Pattern tag = Pattern.compile("(.*?)=\"(.*?)\"");
 
 		Scanner in = new Scanner(new File("input.txt"));
 		String s = in.nextLine();

@@ -1,7 +1,11 @@
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,8 +26,48 @@ public class HTMLTree {
 	 * 
 	 * G4, other specifications, null if there isn't anything
 	 */
-	private static Pattern tagPattern = Pattern.compile("(.*?)<(/)?(.*?)(\\s.*?)?>");
-	private static Pattern attriExtractor = Pattern.compile("(.*?)=(\"(.*?)\")");
+	private static final Pattern tagPattern = Pattern.compile("(.*?)<(/)?(.*?)(\\s.*?)?>");
+	private static final Pattern attriExtractor = Pattern.compile("(.*?)=\"(.*?)\"");
+	private static final Set<String> USELESSNODES = new HashSet<String>() {
+		{
+			add("script");
+			add("style");
+			add("noscript");
+		}
+	};
+	private static final Set<String> INLINENODES = new HashSet<String>() {
+		{
+			add("b");
+			add("span");
+			add("small");
+			add("strong");
+			add("i");
+			add("em");
+			add("mark");
+			add("del");
+			add("ins");
+			add("sub");
+			add("sup");
+		}
+	};
+
+	private static final Collection<NodeTarget> IGNORENODES = new ArrayList<NodeTarget>() {
+		{
+			add(new NodeTarget("!--"));
+			add(new NodeTarget("img"));
+			add(new NodeTarget("div", "class=\"appendix\""));
+			add(new NodeTarget("div", "class=\"suggestions\""));
+			add(new NodeTarget("div", "class=\"nav\""));
+			add(new NodeTarget("div", "id=\"nav\""));
+			add(new NodeTarget("div", "id=\"footer\""));
+			add(new NodeTarget("div", "id=\"refbegin\""));
+			add(new NodeTarget("div", "id=\"reflist\""));
+			add(new NodeTarget("table", "class=\"nav\""));
+			add(new NodeTarget("table", "class=\"noprint\""));
+			add(new NodeTarget("link"));
+		}
+	};
+
 	private Node root;
 
 	/**
@@ -31,7 +75,7 @@ public class HTMLTree {
 	 * @param htmlF
 	 */
 	public HTMLTree(Collection<String> htmlF) {
-		root = new Node(null, "RootNode");
+		root = new Node(null, "RootNode", null);
 		Node cur = root;
 		String leftStr = "";
 		for (String l : htmlF) {
@@ -52,7 +96,6 @@ public class HTMLTree {
 			}
 			leftStr = line.substring(index);
 		}
-
 		root.clearNode();
 	}
 
@@ -69,10 +112,10 @@ public class HTMLTree {
 	private Node findHeadTag(Node curNode, String tagName) {
 		Node cur = curNode;
 		try {
-			while (!cur.is(tagName)) {
+			while (!cur.type.equals(tagName)) {
 				Node parent = cur.getParentNode();
 				parent.subNodes.addAll(cur.subNodes);
-				cur.subNodes = null;
+				cur.subNodes = new LinkedList<>();
 				cur = parent;
 			}
 		} catch (NullPointerException e) {
@@ -112,7 +155,8 @@ public class HTMLTree {
 	 * @return a collection of words within certain tag
 	 */
 	public Collection<String> TextWithinTag(String tag) {
-		return root.textWithinTag(tag);
+		NodeTarget target = new NodeTarget(tag);
+		return root.textWithin(target);
 	}
 
 	/**
@@ -122,82 +166,82 @@ public class HTMLTree {
 	 * @param attr
 	 * @return
 	 */
-	public Collection<String> textWithinTagCointainAttr(String tag, HashMap<String, String> attr) {
-		return root.textWithinTagCointainAttr(tag, attr);
+	public Collection<String> textWithinTagCointainAttr(String tag, String attr) {
+		NodeTarget target = new NodeTarget(tag, attr);
+		return root.textWithin(target);
 	}
 
 	@Override
 	public String toString() {
+		root.d = "";
 		return root.toString();
 	}
 
-	private class Node {
-		private Node parent;
-		private LinkedList<Node> subNodes;
-		private String type;
-		private HashMap<String, String> attributes;
+	private static class Node {
+		protected final Node parent;
+		protected LinkedList<Node> subNodes;
+		protected final String type;
+		protected Map<String, String> attributes;
+		String d;
 
 		/**
-		 * TODO Put here a description of what this constructor does.
+		 * Construct a html node known its parent node, tag name and attributes
+		 * attached. Its content, subNodes within the node will be added in the
+		 * future.
 		 * 
 		 * @param parent
-		 *
-		 */
-		public Node(Node parent, String tagtype) {
-			this.parent = parent;
-			subNodes = new LinkedList<Node>();
-			this.type = tagtype;
-		}
-
-		/**
-		 * TODO Put here a description of what this constructor does.
-		 *
-		 * @param node
 		 * @param tagName
 		 * @param attr
 		 */
-		public Node(Node node, String tagName, String attr) {
-			this(node, tagName);
-			if (attr == null) {
-				// this.attributes = new HashMap<String, String>();
-			} else {
+		public Node(Node parent, String tagName, String attr) {
+			this.parent = parent;
+			subNodes = new LinkedList<Node>();
+			this.type = tagName;
+			if (attr != null) {
 				this.attributes = new HashMap<String, String>();
 				Matcher m = attriExtractor.matcher(attr);
 				int index = 0;
 				if (m.find(index)) {
-					attributes.put(m.group(1), m.group(3));
+					attributes.put(m.group(1), m.group(2));
 					index = m.end();
 				}
+				if (attributes.size() == 0)
+					attributes = null;
 			}
 
 		}
 
 		/**
-		 * TODO Put here a description of what this method does.
-		 *
+		 * 
+		 * clean out useless and empty nodes in this tree to speed up future
+		 * process.
+		 * 
 		 */
 		public void clearNode() {
-			if (isEmpty())
-				return;
 			Iterator<Node> itr = subNodes.iterator();
 			while (itr.hasNext()) {
 				Node n = itr.next();
-				n.clearNode();
-				if (n.isEmpty())
+				if (n.useless()) {
 					itr.remove();
+				} else {
+					n.clearNode();
+				}
 			}
 		}
 
-		public void clearNode(Node target) {
-			Iterator<Node> itr = subNodes.iterator();
-			while (itr.hasNext()) {
-				Node n = itr.next();
-				if (n.matchNode(target)) {
-					itr.remove();
-				} else {
-					n.clearNode(target);
-				}
-			}
+		/**
+		 * tell whether this node is useless for future process, remove needless
+		 * nodes
+		 * 
+		 * @return
+		 */
+		protected boolean useless() {
+			if (isEmpty())
+				return true;
+			for (NodeTarget tar : IGNORENODES)
+				if (match(tar))
+					return true;
+			return false;
 		}
 
 		/**
@@ -206,11 +250,17 @@ public class HTMLTree {
 		 * @param n
 		 * @return
 		 */
-		private boolean matchNode(Node n) {
-			if (!type.equals(n.type) | attributes == null)
+		protected boolean match(NodeTarget n) {
+			if (!type.equals(n.type))
+				return false;
+			if (n.attributes == null)
+				return true;
+			if (attributes == null)
 				return false;
 			for (String attr : n.attributes.keySet()) {
-				if (!attributes.containsKey(attr) | !attributes.get(attr).contains(n.attributes.get(attr)))
+				if (!attributes.containsKey(attr))
+					return false;
+				if (!attributes.get(attr).contains(n.attributes.get(attr)))
 					return false;
 			}
 			return true;
@@ -222,17 +272,7 @@ public class HTMLTree {
 		 * @return
 		 */
 		public boolean isEmpty() {
-			return subNodes.size() == 0;
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
-		 * @param tagName
-		 * @return
-		 */
-		public boolean is(String tagName) {
-			return type.equals(tagName);
+			return subNodes.size() == 0 && attributes == null;
 		}
 
 		/**
@@ -240,11 +280,12 @@ public class HTMLTree {
 		 * @param tagName
 		 * @param attributes
 		 * @param endTag
+		 * @return
 		 */
 		protected Node addNode(String tagName, String attributes) {
 			Node ret;
-			if (tagName == "script")
-				ret = new ScriptNode(this, tagName, 1);
+			if (USELESSNODES.contains(tagName))
+				ret = new UselessNode(this, tagName);
 			else
 				ret = new Node(this, tagName, attributes);
 			subNodes.add(ret);
@@ -259,7 +300,7 @@ public class HTMLTree {
 		protected void addString(String str) {
 			String s = str.trim();
 			if (s.length() > 0)
-				subNodes.add(new TextNode(this, s, 1));
+				subNodes.add(new TextNode(this, s));
 		}
 
 		protected Node getParentNode() {
@@ -268,52 +309,25 @@ public class HTMLTree {
 
 		@Override
 		public String toString() {
-			return subNodes.toString();
+			StringBuilder sb = new StringBuilder();
+			sb.append(d + "<" + type + attributes + ">\n");
+			String nl = d + " ";
+			for (Node n : subNodes) {
+				n.d = nl;
+				sb.append(n);
+			}
+			sb.append(d + "<\\" + type + ">\n");
+			return sb.toString();
 		}
 
-//		/**
-//		 * TODO Put here a description of what this method does.
-//		 *
-//		 * @param tag
-//		 * @return
-//		 */
-//		public LinkedList<String> textWithinTag(String tag) {
-//			LinkedList<String> ret = new LinkedList<String>();
-//			if (tag.equals(type)) {
-//				ret.add(textWithin().trim());
-//				return ret;
-//			}
-//			for (Node node : subNodes)
-//				ret.addAll(node.textWithinTag(tag));
-//			return ret;
-//		}
-//
-//		/**
-//		 * TODO Put here a description of what this method does.
-//		 *
-//		 * @param tag
-//		 * @return
-//		 */
-//		public LinkedList<String> textWithinTagCointainAttr(String tag, HashMap<String, String> attr) {
-//			LinkedList<String> ret = new LinkedList<String>();
-//			if (tag.equals(type) && ContainAttr(attr)) {
-//				ret.add(textWithin().trim());
-//				return ret;
-//			}
-//			for (Node node : subNodes)
-//				ret.addAll(node.textWithinTag(tag));
-//			return ret;
-//		}
-		
 		/**
-		 * TODO Put here a description of what this method does.
 		 *
 		 * @param tag
 		 * @return
 		 */
-		public LinkedList<String> textWithin(Node target) {
+		public LinkedList<String> textWithin(NodeTarget target) {
 			LinkedList<String> ret = new LinkedList<String>();
-			if (matchNode(target)) {
+			if (match(target)) {
 				ret.add(textWithin().trim());
 				return ret;
 			}
@@ -324,31 +338,13 @@ public class HTMLTree {
 
 		/**
 		 *
-		 * @param requirements
-		 * @return
-		 */
-		private boolean ContainAttr(HashMap<String, String> requirements) {
-			if (attributes == null)
-				return false;
-			for (String attr : requirements.keySet()) {
-				if (!attributes.containsKey(attr))
-					return false;
-				if (!attributes.get(attr).contains(requirements.get(attr)))
-					return false;
-			}
-			return true;
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
 		 * @return
 		 */
 		public String textWithin() {
 			if (subNodes.size() == 0)
 				return "";
 			if (subNodes.size() == 1)
-				return subNodes.get(0).textWithin();
+				return subNodes.getFirst().textWithin();
 			StringBuilder sb = new StringBuilder();
 			for (Node node : subNodes)
 				sb.append(node.textWithin());
@@ -356,15 +352,18 @@ public class HTMLTree {
 		}
 	}
 
-	private class TextNode extends Node {
+	private static class TextNode extends Node {
 		private String text;
 
 		/**
-		 * TODO Put here a description of what this constructor does.
+		 * 
+		 * @param parent
+		 * @param context
+		 * @param i
 		 *
 		 */
-		TextNode(Node parent, String context, int i) {
-			super(parent, "text");
+		TextNode(Node parent, String context) {
+			super(parent, "text", null);
 			text = context;
 		}
 
@@ -375,7 +374,7 @@ public class HTMLTree {
 
 		@Override
 		public String toString() {
-			return text;
+			return d + text;
 		}
 
 		/**
@@ -385,11 +384,10 @@ public class HTMLTree {
 		 * @return
 		 */
 		@Override
-		public LinkedList<String> textWithinTag(String tag) {
-			if (!tag.equals(""))
-				return new LinkedList<>();
+		public LinkedList<String> textWithin(NodeTarget target) {
 			LinkedList<String> ret = new LinkedList<String>();
-			ret.add(text);
+			if (!target.type.equals(""))
+				ret.add(text);
 			return ret;
 		}
 
@@ -399,14 +397,14 @@ public class HTMLTree {
 		}
 	}
 
-	private class ScriptNode extends Node {
+	private static class UselessNode extends Node {
 
 		/**
 		 * TODO Put here a description of what this constructor does.
 		 *
 		 */
-		public ScriptNode(Node parent, String tagname, int i) {
-			super(parent, tagname);
+		public UselessNode(Node parent, String tagname) {
+			super(parent, tagname, null);
 		}
 
 		@Override
@@ -431,8 +429,8 @@ public class HTMLTree {
 		 * @return
 		 */
 		@Override
-		public LinkedList<String> textWithinTag(String tag) {
-			return new LinkedList<String>();
+		public LinkedList<String> textWithin(NodeTarget target) {
+			throw new RuntimeException();
 		}
 
 		/**
@@ -442,13 +440,32 @@ public class HTMLTree {
 		 */
 		@Override
 		public String textWithin() {
-			return "";
+			throw new RuntimeException();
 		}
 
 		@Override
 		public String toString() {
-			return "Script";
+			return d + "uselessNode " + type;
 		}
+	}
+
+	private static class NodeTarget extends Node {
+
+		/**
+		 * TODO Put here a description of what this constructor does.
+		 *
+		 * @param node
+		 * @param tagName
+		 * @param attr
+		 */
+		public NodeTarget(String tagName, String attr) {
+			super(null, tagName, attr);
+		}
+
+		public NodeTarget(String tagName) {
+			super(null, tagName, null);
+		}
+
 	}
 
 }
