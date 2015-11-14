@@ -10,8 +10,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import HTMLTree.Node;
-
 /**
  * TODO Put here a description of what this class does.
  *
@@ -257,19 +255,19 @@ public class HTMLTree {
 			Node cur;
 			Node pre;
 			boolean t = false;
-//			while (itr.hasNext()) {
-//				pre = cur;
-//				cur = itr.next();
-//				if (t) {
-//					if (cur.isText()) {
-//						t
-//					}
-//				} else {
-//					if (cur.isText()) {
-//						t = true;
-//					}
-//				}
-//			}
+			// while (itr.hasNext()) {
+			// pre = cur;
+			// cur = itr.next();
+			// if (t) {
+			// if (cur.isText()) {
+			// t
+			// }
+			// } else {
+			// if (cur.isText()) {
+			// t = true;
+			// }
+			// }
+			// }
 		}
 
 		/**
@@ -288,10 +286,11 @@ public class HTMLTree {
 		 * @return
 		 */
 		protected boolean useless() {
-			if (isEmpty())
-				for (NodeTarget tar : IGNORENODES)
-					if (match(tar))
-						return true;
+			if (subNodes.size() == 0 && attributes == null)
+				return true;
+			for (NodeTarget tar : IGNORENODES)
+				if (match(tar))
+					return true;
 			return false;
 		}
 
@@ -315,15 +314,6 @@ public class HTMLTree {
 					return false;
 			}
 			return true;
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
-		 * @return
-		 */
-		public boolean isEmpty() {
-			return subNodes.size() == 0 && attributes == null;
 		}
 
 		/**
@@ -429,7 +419,7 @@ public class HTMLTree {
 		}
 
 		@Override
-		public boolean isEmpty() {
+		public boolean useless() {
 			return false;
 		}
 
@@ -469,7 +459,7 @@ public class HTMLTree {
 		}
 
 		@Override
-		public boolean isEmpty() {
+		public boolean useless() {
 			return true;
 		}
 

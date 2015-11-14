@@ -19,7 +19,7 @@ public class HTMLTreeBuilder {
 	 * @throws FileNotFoundException
 	 */
 	public static void main(String[] args) throws FileNotFoundException {
-		File intput = new File("input.txt");
+		File intput = new File("Presidents\\Obama.txt");
 		Scanner in = new Scanner(intput);
 		ArrayList<String> lines = new ArrayList<>();
 		while (in.hasNextLine()) {

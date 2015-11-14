@@ -13,6 +13,8 @@ public class Document implements Comparable<Document> {
 	private final int length;
 	private String name;
 
+	private NLP nlp;
+
 	/**
 	 * temporally score for the query just ran.
 	 */
@@ -22,7 +24,7 @@ public class Document implements Comparable<Document> {
 	 * 
 	 * construct a document given HTML file as array of lines
 	 * 
-	 * @param name 
+	 * @param name
 	 * @param htmlF
 	 */
 	public Document(String name, Collection<String> htmlF) {
@@ -40,6 +42,8 @@ public class Document implements Comparable<Document> {
 		addDatabase("h", 3);
 		addDatabase("h2", 3);
 		addDatabase("h3", 3);
+
+//		nlp = new NLP(nlpF);
 	}
 
 	/**
@@ -51,7 +55,6 @@ public class Document implements Comparable<Document> {
 	private void addDatabase(String tag, int maxLength) {
 		databases.put(tag, new WordsDatabase(maxLength, parseTree.TextWithinTag(tag)));
 	}
-
 
 	/**
 	 *
