@@ -130,10 +130,11 @@ public class NLP {
 		}
 		Collections.sort(occur);
 		System.out.println(occur);
-		int s = 0;
-		int i = 0, j = 0;
-		while (s + CLOSEDIS < sentences.size()) {
-			while (occur.get(i).getSentenceID() < s) {
+		int s = Math.max(occur.get(0).getSentenceID() - CLOSEDIS, 0);
+		int i = 0, j = -1;
+		nextBox: while (s + CLOSEDIS < sentences.size()) {
+			s++;
+			while (i < j && occur.get(i + 1).getSentenceID() > s) {
 				String q = occur.get(i).word;
 				track.put(q, track.get(q) - 1);
 				i++;
@@ -143,26 +144,17 @@ public class NLP {
 				String q = occur.get(j).word;
 				track.put(q, track.get(q) + 1);
 			}
+
+			System.out.println("[" + s + "," + (s + CLOSEDIS) + "] " + i + " " + j + " " + track);
 			for (String q : track.keySet()) {
-				if (track.get(q) == 0)
-					return false;
-				else if (track.get(q) < 0)
+				if (track.get(q) == 0) {
+					continue nextBox;
+				} else if (track.get(q) < 0)
 					throw new RuntimeException();
 			}
-			return true;
-				count++;
-			s++;
+			count++;
 		}
 		return count * 1.0 / (sentences.size() - CLOSEDIS);
-	}
-
-	/**
-	 * TODO Put here a description of what this method does.
-	 *
-	 * @return
-	 */
-	private boolean allOccur(HashMap<String, Integer> track) {
-		
 	}
 
 	/**
@@ -321,7 +313,7 @@ public class NLP {
 
 			@Override
 			public String toString() {
-				return "" + getSentenceID() + " " + pos + " " + word;
+				return "" + getSentenceID() + " " + word;
 			}
 
 			@Override
