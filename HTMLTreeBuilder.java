@@ -36,6 +36,7 @@ public class HTMLTreeBuilder {
 		a.add("this");
 		a.add("is");
 		nlp.query(a);
+		System.out.println(nlp.query(a));
 		// fr.write(nlp.sentences.toString());
 		// System.out.println(nlp.sentences);
 	}

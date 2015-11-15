@@ -119,28 +119,50 @@ public class NLP {
 	 * @return
 	 */
 	public double query(Collection<String> queries) {
+		int count = 0;
 		ArrayList<Sentence.Token> occur = new ArrayList<>();
+		HashMap<String, Integer> track = new HashMap<>();
 		for (String q : queries) {
 			if (!occurance.containsKey(q))
 				return 0;
 			occur.addAll(occurance.get(q));
+			track.put(q, 0);
 		}
 		Collections.sort(occur);
-		LinkedList<Sentence.Token> quene = new LinkedList<>();
-		int[] tracker = new int[queries.size()];
-		addToken: for (Sentence.Token t : occur) {
-			int min = t.getSentenceID() - CLOSEDIS;
-			if (quene.peek().getSentenceID() < min){
-				quene.pop();
-			}
-			for (int i : tracker) {
-				if (i == 0)
-					continue addToken;
-			}
-		}
 		System.out.println(occur);
-		System.out.println("ok");
-		return 0;
+		int s = 0;
+		int i = 0, j = 0;
+		while (s + CLOSEDIS < sentences.size()) {
+			while (occur.get(i).getSentenceID() < s) {
+				String q = occur.get(i).word;
+				track.put(q, track.get(q) - 1);
+				i++;
+			}
+			while (j + 1 < occur.size() && occur.get(j + 1).getSentenceID() < s + CLOSEDIS) {
+				j++;
+				String q = occur.get(j).word;
+				track.put(q, track.get(q) + 1);
+			}
+			for (String q : track.keySet()) {
+				if (track.get(q) == 0)
+					return false;
+				else if (track.get(q) < 0)
+					throw new RuntimeException();
+			}
+			return true;
+				count++;
+			s++;
+		}
+		return count * 1.0 / (sentences.size() - CLOSEDIS);
+	}
+
+	/**
+	 * TODO Put here a description of what this method does.
+	 *
+	 * @return
+	 */
+	private boolean allOccur(HashMap<String, Integer> track) {
+		
 	}
 
 	/**
