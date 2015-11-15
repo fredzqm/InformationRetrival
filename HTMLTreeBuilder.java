@@ -1,5 +1,9 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -16,19 +20,24 @@ public class HTMLTreeBuilder {
 	 * TODO Put here a description of what this method does.
 	 *
 	 * @param args
-	 * @throws FileNotFoundException
+	 * @throws IOException
 	 */
-	public static void main(String[] args) throws FileNotFoundException {
-		File intput = new File("Presidents\\Obama.txt");
+	public static void main(String[] args) throws IOException {
+		File intput = new File("input.txt");
 		Scanner in = new Scanner(intput);
 		ArrayList<String> lines = new ArrayList<>();
 		while (in.hasNextLine()) {
 			lines.add(in.nextLine());
 		}
 		in.close();
-
-		System.out.println( new HTMLTree(lines) );
+		PrintWriter fr = new PrintWriter("output.txt");
+		NLP nlp = new NLP(lines);
+		ArrayList<String> a = new ArrayList();
+		a.add("this");
+		a.add("is");
+		nlp.query(a);
+		// fr.write(nlp.sentences.toString());
+		// System.out.println(nlp.sentences);
 	}
-
 
 }

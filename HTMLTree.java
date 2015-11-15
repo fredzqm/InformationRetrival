@@ -114,7 +114,6 @@ public class HTMLTree {
 			}
 		}
 		root.clearNode();
-		root.combineTextNode();
 	}
 
 	/**
@@ -218,7 +217,7 @@ public class HTMLTree {
 				this.attributes = new HashMap<String, String>();
 				Matcher m = attriExtractor.matcher(attr);
 				int index = 0;
-				if (m.find(index)) {
+				while (m.find(index)) {
 					attributes.put(m.group(1), m.group(2));
 					index = m.end();
 				}
@@ -244,39 +243,6 @@ public class HTMLTree {
 					n.clearNode();
 				}
 			}
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
-		 */
-		public void combineTextNode() {
-			ListIterator<Node> itr = subNodes.listIterator();
-			Node cur;
-			Node pre;
-			boolean t = false;
-			// while (itr.hasNext()) {
-			// pre = cur;
-			// cur = itr.next();
-			// if (t) {
-			// if (cur.isText()) {
-			// t
-			// }
-			// } else {
-			// if (cur.isText()) {
-			// t = true;
-			// }
-			// }
-			// }
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
-		 * @return
-		 */
-		protected boolean isText() {
-			return INLINENODES.contains(type);
 		}
 
 		/**
@@ -406,16 +372,6 @@ public class HTMLTree {
 		TextNode(Node parent, String context) {
 			super(parent, "text", null);
 			text = context;
-		}
-
-		/**
-		 * TODO Put here a description of what this method does.
-		 *
-		 * @return
-		 */
-		@Override
-		protected boolean isText() {
-			return true;
 		}
 
 		@Override

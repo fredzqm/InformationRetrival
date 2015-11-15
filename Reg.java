@@ -1,9 +1,12 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 /**
  * TODO Put here a description of what this class does.
@@ -21,36 +24,10 @@ public class Reg {
 	 * @throws FileNotFoundException
 	 */
 	public static void main(String[] args) throws FileNotFoundException {
-
 		int length = 4;
-		Pattern tag = Pattern.compile("(.*?)<(/)?(.*?)(\\s.*?)?>");
 		Scanner in = new Scanner(new File("input.txt"));
 		String s = in.nextLine();
 		System.out.println("input:   " + s);
-
-		System.out.println(("p p "+s.trim()).split("\\w+").length - 3);
-
-		
-		Matcher m = tag.matcher(s);
-
-		int matchcount = 1;
-		int index = 0;
-		while (true) {
-			System.out.println("\nMatch " + matchcount);
-			boolean found = m.find(index);
-			System.out.println("Match?: " + found);
-			if (!found)
-				break;
-			index = m.end();
-			System.out.println("start: " + m.start());
-			System.out.println("end: " + m.end());
-			int count = m.groupCount();
-			for (int i = 0; i <= count; i++) {
-				System.out.println("G" + i + ": " + m.group(i));
-			}
-			System.out.println("After String:" + s.substring(m.end()));
-			matchcount++;
-		}
 	}
 
 	private static ArrayList<String> getWord(String s, int length) {

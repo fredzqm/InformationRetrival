@@ -13,7 +13,7 @@ public class Curation implements Cloneable {
 	ArrayList<Document> documents;
 	private double avgLength;
 	private int totalLength;
-
+	
 	/**
 	 * TODO Put here a description of what this constructor does.
 	 *
