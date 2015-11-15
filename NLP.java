@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,6 +16,9 @@ public class NLP {
 	private static final Pattern tagPattern = Pattern.compile("(.*?)<(/)?(.*?)(\\s.*?)?>");
 	private static final Pattern attriExtractor = Pattern.compile("(.*?)=\"(.*?)\"");
 	public static final int CLOSEDIS = 10;
+	private static final double A = 5000;
+	private static final int B = 1000;
+	private static final double C = 0.1;
 	ArrayList<Sentence> sentences;
 	HashMap<String, ArrayList<Sentence.Token>> occurance;
 
@@ -33,23 +35,29 @@ public class NLP {
 
 		Node root = new Node(null, "root", null);
 		Node cur = root;
-		for (String line : nlpF) {
+		String leftString = "";
+		for (String s : nlpF) {
+			String line = leftString + " " + s;
 			Matcher m = tagPattern.matcher(line);
 			int index = 0;
+			if (line.contains("id=\"1\""))
+				index = 0;
 			while (true) {
 				if (!m.find(index))
 					break;
 				cur.addString(m.group(1)); // add string before this tag
 				String tagName = m.group(3);
-				if (tagName.startsWith("?"))
-					break;
 				index = m.end();
+				if (tagName.startsWith("?")) {
+					break;
+				}
 				if (isEndTag(m.group(2))) {
 					cur = findHeadTag(cur, tagName);
 				} else {
 					cur = cur.addNode(tagName, m.group(4));
 				}
 			}
+			leftString = line.substring(index);
 		}
 
 		Iterator<Node> itr = root.subNodes.getFirst().subNodes.getFirst().subNodes.iterator();
@@ -60,7 +68,6 @@ public class NLP {
 			sentences.add(new Sentence(n, sentenceIndex));
 			sentenceIndex++;
 		}
-		// System.out.println( itr.next().type );
 	}
 
 	/**
@@ -73,13 +80,13 @@ public class NLP {
 	 * @return
 	 */
 	private Node findHeadTag(Node curNode, String tagName) {
+		int a;
+		if (tagName.contains("tokens"))
+			a = 1;
 		Node cur = curNode;
 		try {
 			while (!cur.type.equals(tagName)) {
-				Node parent = cur.getParentNode();
-				parent.subNodes.addAll(cur.subNodes);
-				cur.subNodes = new LinkedList<>();
-				cur = parent;
+				cur = cur.getParentNode();
 			}
 		} catch (NullPointerException e) {
 			throw new RuntimeException("end tag can't find head tag");
@@ -103,10 +110,6 @@ public class NLP {
 		throw new RuntimeException("Weired thing before tag name: " + ident);
 	}
 
-	public Sentence getSentence(int sentenceID) {
-		return sentences.get(sentenceID);
-	}
-
 	@Override
 	public String toString() {
 		return sentences.toString();
@@ -116,10 +119,11 @@ public class NLP {
 	 * TODO Put here a description of what this method does.
 	 *
 	 * @param queries
-	 * @return
+	 * @retu rn
 	 */
 	public double query(Collection<String> queries) {
 		int count = 0;
+		double close = 0;
 		ArrayList<Sentence.Token> occur = new ArrayList<>();
 		HashMap<String, Integer> track = new HashMap<>();
 		for (String q : queries) {
@@ -129,7 +133,6 @@ public class NLP {
 			track.put(q, 0);
 		}
 		Collections.sort(occur);
-		System.out.println(occur);
 		int s = Math.max(occur.get(0).getSentenceID() - CLOSEDIS, 0);
 		int i = 0, j = -1;
 		nextBox: while (s + CLOSEDIS < sentences.size()) {
@@ -139,13 +142,17 @@ public class NLP {
 				track.put(q, track.get(q) - 1);
 				i++;
 			}
+			int pj = j;
 			while (j + 1 < occur.size() && occur.get(j + 1).getSentenceID() < s + CLOSEDIS) {
 				j++;
 				String q = occur.get(j).word;
 				track.put(q, track.get(q) + 1);
 			}
+			if (j - pj > 1) {
+				int dept = commonAncestorLevel(occur, j, pj + 1);
+				close += Math.pow(0.5 , dept);
+			}
 
-			System.out.println("[" + s + "," + (s + CLOSEDIS) + "] " + i + " " + j + " " + track);
 			for (String q : track.keySet()) {
 				if (track.get(q) == 0) {
 					continue nextBox;
@@ -154,7 +161,49 @@ public class NLP {
 			}
 			count++;
 		}
-		return count * 1.0 / (sentences.size() - CLOSEDIS);
+		return close * A  + count * B / (sentences.size() - CLOSEDIS) ; // TODO: parameter
+	}
+
+	/**
+	 * TODO Put here a description of what this method does.
+	 *
+	 * @param occur
+	 * @param i
+	 * @param pj
+	 * @return
+	 */
+	private int commonAncestorLevel(ArrayList<NLP.Sentence.Token> occur, int x, int y) {
+		Sentence sen = occur.get(y).getSentence();
+		ArrayList<ArrayList<Sentence.WNode>> ancestors = new ArrayList<ArrayList<Sentence.WNode>>();
+		ArrayList<Sentence.WNode> anc = new ArrayList();
+		for (int i = x; i <= y; i++) {
+			Sentence.Token t = occur.get(i);
+			if (sen != t.getSentence())
+				throw new RuntimeException();
+			anc = new ArrayList<Sentence.WNode>();
+			Sentence.WNode cur = t.getLinkedNode();
+			while (cur != null) {
+				anc.add(cur);
+				cur = cur.getParent();
+			}
+			ancestors.add(anc);
+		}
+		Sentence.WNode parentNode = null;
+		int minDis = 0;
+		nextWNode: for (int i = 0; i < anc.size(); i++) {
+			parentNode = anc.get(i);
+			for (ArrayList<Sentence.WNode> ancestorlist : ancestors) {
+				if (!ancestorlist.contains(parentNode))
+					continue nextWNode;
+			}
+			minDis = i;
+			break;
+		}
+		for (ArrayList<Sentence.WNode> ancestorlist : ancestors) {
+			if (ancestorlist.indexOf(parentNode) < minDis)
+				minDis = ancestorlist.indexOf(parentNode);
+		}
+		return minDis;
 	}
 
 	/**
@@ -184,8 +233,10 @@ public class NLP {
 				tokens.add(new Token(n, tokenIndex));
 				tokenIndex++;
 			}
-
+			int a;
 			// parse the tree and make link to token list.
+			if (!itr.hasNext())
+				a = 1;
 			String parsedString = itr.next().text;
 			int index = 0;
 			tokenIndex = 0;
@@ -211,7 +262,6 @@ public class NLP {
 					index = i + 1;
 				}
 			}
-			// System.out.println(root);
 			root = root.subNodes.getFirst();
 			// System.out.println(s);
 			// throw new RuntimeException();
@@ -274,14 +324,6 @@ public class NLP {
 			int pos;
 			private String word;
 			private WNode linkedWNode;
-			// other attributes can be added for the future use.
-			// private String lemma;
-			// private String CharacterOffsetBegin;
-			// private String CharacterOffsetEnd;
-			// private String POS;
-			// private String NER;
-			// private String NormalizedNER;
-			// private String Timex;
 
 			/**
 			 * TODO Put here a description of what this constructor does.
@@ -293,18 +335,29 @@ public class NLP {
 			public Token(Node token, int tokenIndex) {
 				pos = tokenIndex;
 				Iterator<Node> itr = token.subNodes.iterator();
+				// word = PorterAlgorithm.porterAlgorithm(itr.next().text);
 				word = itr.next().text;
-				// lemma = itr.next().text;
-				// CharacterOffsetBegin = itr.next().text;
-				// CharacterOffsetEnd = itr.next().text;
-				// POS = itr.next().text;
-				// NER = itr.next().text;
-				// NormalizedNER = itr.next().text;
-				// Timex = itr.next().text;
-
 				if (!occurance.containsKey(word))
 					occurance.put(word, new ArrayList<Token>());
 				occurance.get(word).add(this);
+			}
+
+			/**
+			 * TODO Put here a description of what this method does.
+			 *
+			 * @return
+			 */
+			public WNode getLinkedNode() {
+				return linkedWNode;
+			}
+
+			/**
+			 * TODO Put here a description of what this method does.
+			 *
+			 * @return
+			 */
+			public Sentence getSentence() {
+				return Sentence.this;
 			}
 
 			public int getSentenceID() {

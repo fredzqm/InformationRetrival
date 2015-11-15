@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,12 +25,13 @@ public class HTMLTreeBuilder {
 	 */
 	public static void main(String[] args) throws IOException {
 		File intput = new File("input.txt");
-		Scanner in = new Scanner(intput);
+//		Scanner in = new Scanner(intput);
 		ArrayList<String> lines = new ArrayList<>();
-		while (in.hasNextLine()) {
-			lines.add(in.nextLine());
+		Scanner s = new Scanner(new FileInputStream(new File("input.txt")));
+		while(s.hasNextLine()) {
+		   lines.add(s.nextLine());
 		}
-		in.close();
+		s.close();
 		PrintWriter fr = new PrintWriter("output.txt");
 		NLP nlp = new NLP(lines);
 		ArrayList<String> a = new ArrayList();

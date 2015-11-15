@@ -27,7 +27,7 @@ public class Document implements Comparable<Document> {
 	 * @param name
 	 * @param htmlF
 	 */
-	public Document(String name, Collection<String> htmlF) {
+	public Document(String name, Collection<String> htmlF, Collection<String> nlpF) {
 		this.name = name;
 		System.out.println(name);
 		parseTree = new HTMLTree(htmlF);
@@ -43,7 +43,7 @@ public class Document implements Comparable<Document> {
 		addDatabase("h2", 3);
 		addDatabase("h3", 3);
 
-//		nlp = new NLP(nlpF);
+		nlp = new NLP(nlpF);
 	}
 
 	/**
@@ -129,6 +129,16 @@ public class Document implements Comparable<Document> {
 	 */
 	public String getName() {
 		return this.name;
+	}
+
+	/**
+	 * TODO Put here a description of what this method does.
+	 *
+	 * @param query
+	 * @return
+	 */
+	public double nlpQuery(ArrayList<String> query) {
+		return nlp.query(query);
 	}
 
 }

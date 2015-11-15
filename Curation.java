@@ -9,11 +9,12 @@ import java.util.HashMap;
  * @author zhang. Created Oct 26, 2015.
  */
 public class Curation implements Cloneable {
+	private static final double D = 0.5;
 	public static HashMap<String, Integer> weight;
 	ArrayList<Document> documents;
 	private double avgLength;
 	private int totalLength;
-	
+
 	/**
 	 * TODO Put here a description of what this constructor does.
 	 *
@@ -83,12 +84,13 @@ public class Curation implements Cloneable {
 	 */
 	public ArrayList<Document> query(String queryline) {
 		ArrayList<String> s = new ArrayList<String>(Arrays.asList(queryline.split("\\s+")));
-		
+
 		avgLength = totalLength / documents.size();
-		for (Document doc : documents){
+		for (Document doc : documents) {
 			doc.updateScore(score(s, doc));
 		}
 		Collections.sort(documents); // sort descending, highest score at 0.
+		System.out.println(documents);
 
 		ArrayList<Document> finalResult = new ArrayList<Document>();
 		double max = documents.get(0).getScore();
@@ -108,18 +110,19 @@ public class Curation implements Cloneable {
 	 * @return
 	 */
 	public double score(ArrayList<String> query, Document doc) {
+		double score = doc.nlpQuery(query);
 		double scoreForKeyinD = 0;
 		for (String tag : weight.keySet()) {
 			scoreForKeyinD = scoreForKeyinD + weight.get(tag) * BM25(doc, query, tag);
 		}
-		return Math.abs( scoreForKeyinD );
+		return score + D * Math.abs(scoreForKeyinD);
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		for (Document r : documents) {
-			sb.append(r.getName() + " " + r.getScore() );
+			sb.append(r.getName() + " " + r.getScore());
 		}
 		return sb.toString();
 	}
