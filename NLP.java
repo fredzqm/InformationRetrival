@@ -17,7 +17,7 @@ public class NLP {
 	private static final Pattern attriExtractor = Pattern.compile("(.*?)=\"(.*?)\"");
 	public static final int CLOSEDIS = 10;
 	private static final double A = 5000;
-	private static final int B = 1000;
+	private static final int B = 100;
 	private static final double C = 0.1;
 	ArrayList<Sentence> sentences;
 	HashMap<String, ArrayList<Sentence.Token>> occurance;
